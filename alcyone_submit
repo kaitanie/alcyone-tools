@@ -35,7 +35,7 @@ NOTE: max. memory $maxmem MB
 	      
 example: submit 05:30:00 12 6000 hello.sh
  
-In case of problems please contact the Lords of Alcyone (alcyone-admin@helsinki.fi)\n";
+In case of problems please contact the Lords of Alcyone (alcyone-admin\@helsinki.fi)\n";
        
 	  exit 1;
       };
@@ -43,7 +43,7 @@ In case of problems please contact the Lords of Alcyone (alcyone-admin@helsinki.
 ### If submit given with proper arguments, continue. ###
 $time=@ARGV[0];
 $processors=@ARGV[1];
-$memory=@ARGV[2]
+$memory=@ARGV[2];
 $jobname=@ARGV[3];
 
 ### Check time, memory and number of requested processors.
@@ -66,38 +66,43 @@ Set memory to less than $maxmem MB and submit again.\n";
 exit 0;
 }
 
-if ($req_days > 7 ) {
-    if ($total_mem / 1024 > 2) {
-        if ($processors > 1) {
-            $partition = "8G_long_par";
-        }
-        else {
-            $partition = "8G_long_ser";
-        }
-    else {
-        if ($processors > 1) {
-            $partition = "2G_long_par";
-        }
-        else {
-            $partition = "2G_long_ser";
-        }
-else {
-    if ($total_mem / 1024 > 2) {
-        if ($processors > 1) {
-            $partition = "8G_short_par";
-        }
-        else {
-            $partition = "8G_short_ser";
-        }
-    else {
-        if ($processors > 1) {
-            $partition = "2G_short_par";
-        }
-        else {
-            $partition = "2G_short_ser";
-        }
+$is_short_job = 1;
+if ($req_days > 7) {
+    $is_short_job = 0;
 }
 
+$is_single_cpu = 1;
+if ($processors > 1) {
+    $is_single_cpu = 0;
+}
+
+$is_small_mem = 1;
+if ($total_mem / 1024 > 2) {
+    $is_small_mem = 0;
+}
+
+if ($is_short_job && $is_single_cpu && $is_small_mem) {
+    $partition = "2G_short_ser";
+} elsif ($is_short_job && $is_single_cpu && !$is_small_mem) {
+    $partition = "8G_short_ser";
+} elsif ($is_short_job && !$is_single_cpu && $is_small_mem) {
+    $partition = "2G_short_par";
+} elsif (!$is_short_job && $is_single_cpu && $is_small_mem) {
+    $partition = "2G_long_ser";
+} elsif (!$is_short_job && $is_single_cpu && !$is_small_mem) {
+    $partition = "8G_long_ser";
+} else {
+    print "
+Unknown configuration:
+is_short_job = $is_short_job
+is_single_cpu = $is_single_cpu
+is_small_mem = $is_small_mem
+I don't know what to do!
+
+You should probably contact the Lords of Alcyone (alcyone-admin\@helsinki.fi)\n";
+";
+    exit 1;
+}
 
 ### Move old .cmd and .log files. ### 
 use File::Copy;
