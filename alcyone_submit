@@ -115,8 +115,8 @@ if  (-e "$jobname.log") {
 }
 
 ### Generate script ###
-open (jobname, ">>$jobname.cmd");
-print jobname 
+open (fh, ">>$jobname.cmd");
+print fh 
 "#!/bin/bash -l
 #SBATCH -J $jobname
 #SBATCH -o $jobname.out
@@ -124,15 +124,17 @@ print jobname
 #SBATCH -t $time
 #SBATCH --mem=$total_mem\n";
 if ($processors > 1) {
-   print jobname "#SBATCH -n $processors\n";
+   print fh "#SBATCH -n $processors\n";
 }
 if ($partition) {
-   print jobname "#SBATCH -p $partition\n";
+   print fh "#SBATCH -p $partition\n";
 }
 
-print jobname
+print fh "./$jobname\n";
 
-close jobname;
+print fh;
+
+close fh;
 
 print "
 Job submitted on $date 
