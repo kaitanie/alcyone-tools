@@ -100,7 +100,7 @@ is_small_mem = $is_small_mem
 I don't know what to do!
 
 You should probably contact the Lords of Alcyone (alcyone-admin\@helsinki.fi)\n";
-";
+
     exit 1;
 }
 
@@ -146,4 +146,4 @@ The output file will be $jobname.log
 #
 # Now submit it. 
 #
-`sbatch $jobname.cmd`
+#`sbatch $jobname.cmd`
