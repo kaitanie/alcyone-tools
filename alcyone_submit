@@ -146,4 +146,4 @@ The output file will be $jobname.log
 #
 # Now submit it. 
 #
-#`sbatch $jobname.cmd`
+`sbatch $jobname.cmd`
