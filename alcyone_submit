@@ -1,0 +1,144 @@
+#!/usr/bin/perl
+#
+#
+# Submit a Gaussian 09 job to a SLURM batch queue.
+#
+# @ARGV[0]  -- real time
+# @ARGV[1]  -- processors
+# @ARGV[2]  -- memory
+# @ARGV[3]  -- name of input file.
+#
+
+$user=`/usr/bin/whoami`;
+chomp($user);
+$date=localtime();
+$host=`uname -n`;
+$numArgs=$#ARGV+1;
+$maxmem=1020000;
+# this is the memory of bigmem, other nodes have up to 7916 per core ie. 95000 per node
+
+#submitting: arguments are memory, number of cores and time?
+
+if ($numArgs < 4 or $numArgs > 4) {
+	  print "  
+submit -- submits a job to a queue on $host at Department of Physics
+
+usage: submit time processors memory jobfile 
+ 
+ time -- real time (wall clock time in minutes, minutes:seconds or
+              hours:minutes:seconds format)
+ processors -- number of processors
+ memory -- amount of memory in MB   
+ jobfile -- name of input file without .sh
+ 
+NOTE: max. memory $maxmem MB
+	      
+example: submit 05:30:00 12 6000 hello.sh
+ 
+In case of problems please contact the Lords of Alcyone (alcyone-admin@helsinki.fi)\n";
+       
+	  exit 1;
+      };
+
+### If submit given with proper arguments, continue. ###
+$time=@ARGV[0];
+$processors=@ARGV[1];
+$memory=@ARGV[2]
+$jobname=@ARGV[3];
+
+### Check time, memory and number of requested processors.
+### If time is over 7 days -> "-p xx_long_xx", if not -> "-p xx_short_xx"
+### If memory is over 2G -> "-p 8G_xx_xx"8G-partition, if not -> "-p 2G_xx_xx"
+### If number of processors is over 1 -> "-p xx_xx_ser", if not "-p xx_xx_par" 
+@req_days_array = split(":",$time);
+if (scalar @req_days_array > 2) {
+   $req_days = $req_days_array[0] / 24 + $req_days_array[1] / (24 * 60);
+}
+else {
+   $req_days = $req_days_array[0] / (60 * 24) + $req_days_array[1] / (24 * 60 * 60);
+}
+$some_overhead=100.0;
+$total_mem=int($memory + $some_overhead); 
+if ($total_mem > $maxmem) {
+    print " 
+You requested too much memory!
+Set memory to less than $maxmem MB and submit again.\n";
+exit 0;
+}
+
+if ($req_days > 7 ) {
+    if ($total_mem / 1024 > 2) {
+        if ($processors > 1) {
+            $partition = "8G_long_par";
+        }
+        else {
+            $partition = "8G_long_ser";
+        }
+    else {
+        if ($processors > 1) {
+            $partition = "2G_long_par";
+        }
+        else {
+            $partition = "2G_long_ser";
+        }
+else {
+    if ($total_mem / 1024 > 2) {
+        if ($processors > 1) {
+            $partition = "8G_short_par";
+        }
+        else {
+            $partition = "8G_short_ser";
+        }
+    else {
+        if ($processors > 1) {
+            $partition = "2G_short_par";
+        }
+        else {
+            $partition = "2G_short_ser";
+        }
+}
+
+
+### Move old .cmd and .log files. ### 
+use File::Copy;
+$tag = rand();
+if (-e "$jobname.cmd") {
+    move("$jobname.cmd", "$jobname.cmd.$tag");
+}
+if  (-e "$jobname.log") {
+    move("$jobname.log", "$jobname.log.$tag");
+}
+
+### Generate script ###
+open (jobname, ">>$jobname.cmd");
+print jobname 
+"#!/bin/bash -l
+#SBATCH -J $jobname
+#SBATCH -o $jobname.out
+#SBATCh -e $jobname.err
+#SBATCH -t $time
+#SBATCH --mem=$total_mem\n";
+if ($processors > 1) {
+   print jobname "#SBATCH -n $processors\n";
+}
+if ($partition) {
+   print jobname "#SBATCH -p $partition\n";
+}
+
+print jobname
+
+close jobname;
+
+print "
+Job submitted on $date 
+Your requested real time is $time
+               number of cores is $processors
+               amount of memory is $total_mem MB 
+The input file is $jobname.com
+The output file will be $jobname.log
+
+*******************************************************************************\n";
+#
+# Now submit it. 
+#
+`sbatch $jobname.cmd`
