@@ -1,1 +1,4 @@
 Some Alcyone scripts
+
+alcyone_submit : script that determines automatically the batch queue the job should be submitted to
+
